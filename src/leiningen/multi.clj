@@ -1,6 +1,6 @@
 (ns leiningen.multi
-  (:use [leiningen.deps :only [deps]]
-	[leiningen.test :only [test]]))
+  (:use [leiningen.deps :only [deps]])
+  (:require [leiningen.test]))
 
 (def task-whitelist ["deps" "test" "run" "compile" "jar" "uberjar"])
 
@@ -18,14 +18,24 @@
   (or (:multi-library-path project)
       (str (:root project) "/multi-lib")))
 
+(defn- project-for-set
+  [project index deps]
+  (merge project {:library-path (str (multi-library-path project) "/set" index)
+		  :dependencies deps}))
+
 (defn- run-deps
-  [project]
-  (deps project true)
+  [project & args]
+  (apply deps project args)
   (doseq [[index deps-set] (indexed (:multi-deps project))]
-    (deps (merge project {:library-path (str (multi-library-path project) "/set" index)
-			  :dependencies deps-set}) true)))
+    (deps (project-for-set project index deps-set) true)))
+
+(defn- run-test
+  [project & args]
+  (apply leiningen.test/test project args)
+  (doseq [index (range (count (:multi-deps project)))]
+    ))
 
 (defn multi
   [project task & args]
   (when (= task "deps")
-    (run-deps project)))
+    (apply run-deps project args)))

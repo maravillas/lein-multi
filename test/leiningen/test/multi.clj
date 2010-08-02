@@ -1,6 +1,6 @@
 (ns leiningen.test.multi
   (:use [leiningen.multi] :reload-all)
-  (:use [leiningen.core :only [read-project]]
+  (:use [leiningen.core :only [defproject read-project]]
 	[clojure.test]
 	[clojure.contrib.io :only [file delete-file-recursively]]))
 
@@ -11,9 +11,10 @@
   (set (map #(.getName %) (.listFiles (file path)))))
 
 (deftest test-multi-deps
-  (delete-file-recursively (file (:root project) "lib") true)
-  (delete-file-recursively (file (:root project) "multi-lib-test") true)
-  (let [project (merge lein-multi-test
+  (println (:root test-project))
+  (delete-file-recursively (file (:root test-project) "lib") true)
+  (delete-file-recursively (file (:root test-project) "multi-lib-test") true)
+  (let [project (merge test-project
 		       ;; See comment in multi/run-deps re: path
 		       {:multi-library-path "test/sample/multi-lib-test"
 			:multi-deps [[['org.clojure/clojure "1.1.0"]]
