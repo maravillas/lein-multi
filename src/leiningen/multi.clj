@@ -24,19 +24,28 @@
 		  :dependencies deps}))
 
 (defn- run-multi-task
-  [task-fn project]
-  (doseq [[index deps] (indexed (:multi-deps project))]
-    (task-fn (project-for-set project index deps))))
+  ([task-fn project]
+     (run-multi-task task-fn project nil))
+  ([task-fn project delimiter-fn]
+     (doseq [[index deps] (indexed (:multi-deps project))]
+       (when delimiter-fn (delimiter-fn index deps))
+       (task-fn (project-for-set project index deps)))))
 
 (defn- run-deps
   [project & args]
+  (println "Fetching base dependencies:" (:dependencies project))
   (apply deps project args)
-  (run-multi-task #(deps % true) project))
+  (run-multi-task #(deps % true)
+		  project
+		  #(println (format "Fetching dependencies set %d: %s" %1 %2))))
 
 (defn- run-test
   [project & args]
+  (println "Testing against base dependencies:" (:dependencies project))
   (apply leiningen.test/test project args)
-  (run-multi-task leiningen.test/test project))
+  (run-multi-task leiningen.test/test
+		  project
+		  #(println (format "Testing against dependencies set %d: %s" %1 %2))))
 
 (defn multi
   [project task & args]
