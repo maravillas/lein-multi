@@ -23,19 +23,22 @@
   (merge project {:library-path (str (multi-library-path project) "/set" index)
 		  :dependencies deps}))
 
+(defn- run-multi-task
+  [task-fn project]
+  (doseq [[index deps] (indexed (:multi-deps project))]
+    (task-fn (project-for-set project index deps))))
+
 (defn- run-deps
   [project & args]
   (apply deps project args)
-  (doseq [[index deps-set] (indexed (:multi-deps project))]
-    (deps (project-for-set project index deps-set) true)))
+  (run-multi-task #(deps % true) project))
 
 (defn- run-test
   [project & args]
   (apply leiningen.test/test project args)
-  (doseq [index (range (count (:multi-deps project)))]
-    ))
+  (run-multi-task leiningen.test/test project))
 
 (defn multi
   [project task & args]
-  (when (= task "deps")
-    (apply run-deps project args)))
+  (cond (= task "deps") (apply run-deps project args)
+	(= task "test") (apply run-test project args)))
