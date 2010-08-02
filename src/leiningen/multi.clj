@@ -17,6 +17,7 @@
   ;; TODO: Verify
   (let [multi-library-path (or (:multi-library-path project)
 			       (str (:root project) "/multi-lib"))]
+    (deps project true)
     (doseq [[index deps-set] (indexed (:multi-deps project))]
       (deps (merge project {:library-path (str multi-library-path "/set" index)
 			    :dependencies deps-set}) true))))
