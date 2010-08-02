@@ -11,9 +11,15 @@
 
 (defn- run-deps
   [project]
-  (doseq [[index deps-set] (indexed (:multi-deps project))]
-    (deps (merge project {:library-path (format "multi-lib/set%d" index)
-			  :dependencies deps-set}) true)))
+  ;; Should the path be relative to the project root or the cwd?
+  ;; The defaults in leiningen.core/defproject choose the latter, so I will as
+  ;; well, but it seems incorrect.
+  ;; TODO: Verify
+  (let [multi-library-path (or (:multi-library-path project)
+			       (str (:root project) "/multi-lib"))]
+    (doseq [[index deps-set] (indexed (:multi-deps project))]
+      (deps (merge project {:library-path (str multi-library-path "/set" index)
+			    :dependencies deps-set}) true))))
 
 (defn multi
   [project task & args]
