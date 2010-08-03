@@ -60,6 +60,7 @@
       (if success? 0 1))))
 
 (defn multi
+  "Run a task against multiple dependency sets as specified by :multi-deps in project.clj."
   [project task & args]
   (cond (@no-project-needed task) (do
 				    (println (str "lein multi has no effect for task \"" task "\" - running task as normal"))
