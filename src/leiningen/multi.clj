@@ -1,6 +1,6 @@
 (ns leiningen.multi
   (:use [leiningen.deps :only [deps]]
-	[leiningen.core :only [resolve-task]])
+	[leiningen.core :only [resolve-task no-project-needed]])
   (:require [leiningen.test]))
 
 (def task-whitelist ["deps" "test" "run" "compile" "jar" "uberjar"])
@@ -61,5 +61,8 @@
 
 (defn multi
   [project task & args]
-  (cond (= task "deps") (apply run-deps project args)
+  (cond (@no-project-needed task) (do
+				    (println (str "lein multi has no effect for task \"" task "\" - running task as normal"))
+				    (apply (resolve-task task) args))
+	(= task "deps") (apply run-deps project args)
 	:else (apply run-task task project args)))
