@@ -52,7 +52,15 @@
     ;; will result in a return value of 1, as in test-failing-multi-tests
     (is (= result 0))))
 
+(deftest test-multi-no-sets
+  (println "*** Begin embedded tests - ignore results below ***")
+  (let [test-project (merge test-project {:multi-deps nil})
+	result (multi test-project "test")]
+    (println "*** End embedded tests - ignore results above ***")
+    (is (= result 0))))
+
 (deftest test-multi-new-ignored
   (multi test-project "new" "multi-test-new-project")
   (is (.exists (file "multi-test-new-project")))
   (delete-file-recursively (file "multi-test-new-project") true))
+
