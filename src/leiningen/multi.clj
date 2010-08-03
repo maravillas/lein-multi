@@ -3,8 +3,6 @@
 	[leiningen.core :only [resolve-task no-project-needed]])
   (:require [leiningen.test]))
 
-(def task-whitelist ["deps" "test" "run" "compile" "jar" "uberjar"])
-
 (defn- multi-library-path
   [project]
   ;; Should the path be relative to the project root or the cwd?
