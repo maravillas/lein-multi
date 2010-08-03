@@ -4,11 +4,6 @@
 
 (def task-whitelist ["deps" "test" "run" "compile" "jar" "uberjar"])
 
-;; http://thinkrelevance.com/blog/2009/08/12/rifle-oriented-programming-with-clojure-2.html
-(defn- indexed
-  [coll]
-  (map vector (iterate inc 0) coll))
-
 (defn- multi-library-path
   [project]
   ;; Should the path be relative to the project root or the cwd?
@@ -27,9 +22,11 @@
   ([task-fn project]
      (run-multi-task task-fn project nil))
   ([task-fn project delimiter-fn]
-     (doseq [[index deps] (indexed (:multi-deps project))]
-       (when delimiter-fn (delimiter-fn index deps))
-       (task-fn (project-for-set project index deps)))))
+     (doall
+      (map-indexed (fn [i v]
+		     (when delimiter-fn (delimiter-fn i v))
+		     (task-fn (project-for-set project i v)))
+		   (:multi-deps project)))))
 
 (defn- run-deps
   [project & args]
@@ -37,15 +34,18 @@
   (apply deps project args)
   (run-multi-task #(deps % true)
 		  project
-		  #(println (format "Fetching dependencies set %d: %s" %1 %2))))
+		  #(println (str "Fetching dependencies set " %1 ": " %2))))
 
 (defn- run-test
   [project & args]
   (println "Testing against base dependencies:" (:dependencies project))
-  (apply leiningen.test/test project args)
-  (run-multi-task leiningen.test/test
-		  project
-		  #(println (format "Testing against dependencies set %d: %s" %1 %2))))
+  (let [result (cons (apply leiningen.test/test project args)
+		     (run-multi-task leiningen.test/test
+				     project
+				     #(println (str "Testing against dependencies set " %1 ": " %2))))
+	success? (every? zero? result)]
+    ;; TODO: Summarize all runs
+    (if success? 0 1)))
 
 (defn multi
   [project task & args]
