@@ -40,7 +40,7 @@
   [project & args]
   (println "Testing against base dependencies:" (:dependencies project))
   (let [result (cons (apply leiningen.test/test project args)
-		     (run-multi-task leiningen.test/test
+		     (run-multi-task #(apply leiningen.test/test % args)
 				     project
 				     #(println (str "Testing against dependencies set " %1 ": " %2))))
 	success? (every? zero? result)]
