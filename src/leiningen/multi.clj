@@ -1,5 +1,6 @@
 (ns leiningen.multi
-  (:use [leiningen.deps :only [deps]])
+  (:use [leiningen.deps :only [deps]]
+	[leiningen.core :only [resolve-task]])
   (:require [leiningen.test]))
 
 (def task-whitelist ["deps" "test" "run" "compile" "jar" "uberjar"])
@@ -28,26 +29,37 @@
 		     (task-fn (project-for-set project i v)))
 		   (:multi-deps project)))))
 
+(defn- print-base-message
+  [task project]
+  (println (str "Running \"lein " task "\" on base dependencies: " (:dependencies project))))
+
+(defn- print-set-message
+  [task n deps]
+  (println (str "Running \"lein " task "\" on dependencies set " n ": " deps)))
+
 (defn- run-deps
   [project & args]
-  (println "Fetching base dependencies:" (:dependencies project))
+  (print-base-message "deps" project)
   (apply deps project args)
   (run-multi-task #(deps % true)
 		  project
-		  #(println (str "Fetching dependencies set " %1 ": " %2))))
+		  (partial print-set-message "deps")))
 
-(defn- run-test
-  [project & args]
-  (println "Testing against base dependencies:" (:dependencies project))
-  (let [result (cons (apply leiningen.test/test project args)
-		     (run-multi-task #(apply leiningen.test/test % args)
-				     project
-				     #(println (str "Testing against dependencies set " %1 ": " %2))))
-	success? (every? zero? result)]
-    ;; TODO: Summarize all runs
-    (if success? 0 1)))
+(defn- run-task
+  [task project & args]
+  (print-base-message task project)
+  (let [task-fn (resolve-task task)
+	results (cons (apply task-fn project args)
+		      (run-multi-task #(apply task-fn % args)
+				      project
+				      (partial print-set-message task)))
+	;; Should we assume nils mean failure, if mixed with non-nils?
+	valued? (some (complement nil?) results)
+	success? (every? zero? results)]
+    (when valued?
+      (if success? 0 1))))
 
 (defn multi
   [project task & args]
   (cond (= task "deps") (apply run-deps project args)
-	(= task "test") (apply run-test project args)))
+	:else (apply run-task task project args)))
