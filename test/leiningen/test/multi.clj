@@ -59,7 +59,7 @@
     (println "*** End embedded tests - ignore results above ***")
     (is (= result 0))))
 
-(deftest test-multi-new-ignored
+(deftest test-multi-new
   (multi test-project "new" "multi-test-new-project")
   (is (.exists (file "multi-test-new-project")))
   (delete-file-recursively (file "multi-test-new-project") true))
