@@ -51,11 +51,14 @@
 		      (run-multi-task #(apply task-fn % args)
 				      project
 				      (partial print-set-message task)))
-	;; Should we assume nils mean failure, if mixed with non-nils?
-	valued? (some (complement nil?) results)
-	success? (every? zero? results)]
-    (when valued?
-      (if success? 0 1))))
+	valued? (every? number? results)
+	success? (every? #(and (number? %) (zero? %)) results)]
+    (if valued?
+      (if (every? zero? results) 0 1)
+      results)))
+
+;; Should these tasks receive special handling?
+;;   pom jar uberjar clean
 
 (defn multi
   "Run a task against multiple dependency sets as specified by :multi-deps in project.clj."
