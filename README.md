@@ -11,9 +11,9 @@ Syntax:
 Specify dependency sets in your project.clj:
 
     :multi-deps [[[org.clojure/clojure "1.1.0"]
-                  [ring-core "0.2.2"]]
+                  [ring/ring-core "0.2.2"]]
                  [[org.clojure/clojure "1.2.0-beta1"]
-                  [ring-core "0.3.0-SNAPSHOT"]]]
+                  [ring/ring-core "0.3.0-beta1"]]]
 
 Download these dependencies with `lein multi deps` (or by running your tests with `lein multi test`). They will be placed in the folder specified by `:multi-library-path` (default: `multi-lib`).
 
