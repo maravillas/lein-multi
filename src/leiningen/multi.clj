@@ -5,9 +5,9 @@
 
 (defn- multi-library-path
   [project]
-  ;; Should the path be relative to the project root or the cwd?
+  ;; Should the non-default path be relative to the project root or the cwd?
   ;; The defaults in leiningen.core/defproject choose the latter, so I will as
-  ;; well, but it seems incorrect.
+  ;; well. Doing so seems incorrect, edge case though it may be.
   ;; TODO: Verify
   (or (:multi-library-path project)
       (str (:root project) "/multi-lib")))
@@ -35,6 +35,8 @@
   [task n deps]
   (println (str "\nRunning \"lein " task "\" on dependencies set " n ": " deps)))
 
+;; Handle the deps task individually, as we want to pass the "skip-dev" param
+;; to the base call, but pass true for the multi calls.
 (defn- run-deps
   [project & args]
   (print-base-message "deps" project)
@@ -56,9 +58,6 @@
     (if valued?
       (if (every? zero? results) 0 1)
       results)))
-
-;; Should these tasks receive special handling?
-;;   pom jar uberjar clean
 
 (defn multi
   "Run a task against multiple dependency sets as specified by :multi-deps in project.clj."
