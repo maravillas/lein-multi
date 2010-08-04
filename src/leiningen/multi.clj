@@ -33,7 +33,7 @@
 
 (defn- print-set-message
   [task n deps]
-  (println (str "Running \"lein " task "\" on dependencies set " n ": " deps)))
+  (println (str "\nRunning \"lein " task "\" on dependencies set " n ": " deps)))
 
 (defn- run-deps
   [project & args]
