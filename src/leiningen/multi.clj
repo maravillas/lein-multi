@@ -29,7 +29,8 @@
 
 (defn- print-base-message
   [task project]
-  (println (str "Running \"lein " task "\" on base dependencies: " (:dependencies project))))
+  (println (str "Running \"lein " task "\" on base dependencies: "
+                (:dependencies project))))
 
 (defn- print-set-message
   [task n deps]
@@ -60,10 +61,13 @@
       results)))
 
 (defn multi
-  "Run a task against multiple dependency sets as specified by :multi-deps in project.clj."
+  "Run a task against multiple dependency sets as specified by :multi-deps in
+  project.clj."
   [project task & args]
-  (cond (@no-project-needed task) (do
-				    (println (str "lein multi has no effect for task \"" task "\" - running task as normal"))
-				    (apply (resolve-task task) args))
-	(= task "deps") (apply run-deps project args)
-	:else (apply run-task task project args)))
+  (cond
+   (@no-project-needed task) (do
+                               (println (str "lein multi has no effect for task \""
+                                             task "\" - running task as normal"))
+                               (apply (resolve-task task) args))
+   (= task "deps") (apply run-deps project args)
+   :else (apply run-task task project args)))
