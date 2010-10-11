@@ -4,9 +4,9 @@
 	[clojure.test]
 	[clojure.contrib.io :only [file delete-file-recursively]]))
 
-(def test-project (merge (read-project "sample/project.clj")
+(def test-project (merge (read-project "test-project/project.clj")
 		       ;; See comment in multi/run-deps re: path
-		       {:multi-library-path "sample/multi-lib-test"}))
+		       {:multi-library-path "test-project/multi-lib-test"}))
 
 (defn add-clojure-deps
   [project & versions]
