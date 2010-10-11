@@ -13,8 +13,8 @@
       (str (:root project) "/multi-lib")))
 
 (defn- project-for-set
-  [project index deps]
-  (merge project {:library-path (str (multi-library-path project) "/set" index)
+  [project name deps]
+  (merge project {:library-path (str (multi-library-path project) "/" name)
 		  :dependencies deps}))
 
 (defn- run-multi-task
@@ -22,10 +22,10 @@
      (run-multi-task task-fn project nil))
   ([task-fn project delimiter-fn]
      (doall
-      (map-indexed (fn [i v]
-		     (when delimiter-fn (delimiter-fn i v))
-		     (task-fn (project-for-set project i v)))
-		   (:multi-deps project)))))
+      (map (fn [[k v]]
+             (when delimiter-fn (delimiter-fn k v))
+             (task-fn (project-for-set project k v)))
+           (:multi-deps project)))))
 
 (defn- print-base-message
   [task project]
@@ -33,8 +33,8 @@
                 (:dependencies project))))
 
 (defn- print-set-message
-  [task n deps]
-  (println (str "\nRunning \"lein " task "\" on dependencies set " n ": " deps)))
+  [task name deps]
+  (println (str "\nRunning \"lein " task "\" on dependencies set " name ": " deps)))
 
 ;; Handle the deps task individually, as we want to pass the "skip-dev" param
 ;; to the base call, but pass true for the multi calls.

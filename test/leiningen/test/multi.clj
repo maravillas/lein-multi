@@ -10,7 +10,10 @@
 
 (defn add-clojure-deps
   [project & versions]
-  (merge project {:multi-deps (vec (map #(vec [['org.clojure/clojure %]]) versions))}))
+  (merge project {:multi-deps
+                  (apply hash-map
+                         (mapcat (fn [v] [v [['org.clojure/clojure v]]])
+                                 versions))}))
 
 (defn list-files
   [path]
@@ -19,17 +22,17 @@
 (deftest test-multi-deps
   (delete-file-recursively (file (:root test-project) "lib") true)
   (delete-file-recursively (file (:root test-project) "multi-lib-test") true)
-  (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0-beta1")
+  (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0")
 	lib-path (str (:root test-project) "/multi-lib-test")]
     (multi test-project "deps")
     (is (= #{"clojure-1.2.0-RC1.jar"} (list-files (str (:root test-project) "/lib"))))
-    (is (= #{"clojure-1.1.0.jar"} (list-files (str lib-path "/set0"))))
-    (is (= #{"clojure-1.2.0-beta1.jar"} (list-files (str lib-path "/set1"))))))
+    (is (= #{"clojure-1.1.0.jar"} (list-files (str lib-path "/1.1.0"))))
+    (is (= #{"clojure-1.2.0.jar"} (list-files (str lib-path "/1.2.0"))))))
 
 (deftest test-failing-multi-tests
   (delete-file-recursively (file (:root test-project) "multi-lib-test") true)
   (println "*** Begin embedded tests - ignore results below ***")
-  (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0-beta1")
+  (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0")
 	result (multi test-project "test")]
     (println "*** End embedded tests - ignore results above ***")
     (is (= result 1))))
@@ -37,7 +40,7 @@
 (deftest test-passing-multi-tests
   (delete-file-recursively (file (:root test-project) "multi-lib-test") true)
   (println "*** Begin embedded tests - ignore results below ***")
-  (let [test-project (add-clojure-deps test-project "1.2.0-beta1")
+  (let [test-project (add-clojure-deps test-project "1.2.0")
 	result (multi test-project "test")]
     (println "*** End embedded tests - ignore results above ***")
     (is (= result 0))))
