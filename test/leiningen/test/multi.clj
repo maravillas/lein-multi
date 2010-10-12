@@ -49,9 +49,9 @@
   (delete-file-recursively (file (:root test-project) "multi-lib-test") true)
   (println "*** Begin embedded tests - ignore results below ***")
   (let [test-project (add-clojure-deps test-project "1.1.0")
-	result (multi test-project "test" 'sample2)]
+	result (multi test-project "test" "sample2")]
     (println "*** End embedded tests - ignore results above ***")
-    ;; If the 'sample2 namespace argument is ignored, sample/failing-test-1.1.0
+    ;; If the sample2 namespace argument is ignored, sample/failing-test-1.1.0
     ;; will result in a return value of 1, as in test-failing-multi-tests
     (is (= result 0))))
 
