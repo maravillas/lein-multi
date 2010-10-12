@@ -1,6 +1,6 @@
 (ns leiningen.multi
   (:use [leiningen.deps :only [deps]]
-	[leiningen.core :only [resolve-task no-project-needed]])
+	[leiningen.core :only [resolve-task arglists]])
   (:require [leiningen.test]))
 
 (defn- multi-library-path
@@ -50,24 +50,28 @@
   [task project & args]
   (print-base-message task project)
   (let [task-fn (resolve-task task)
-	results (cons (apply task-fn project args)
-		      (run-multi-task #(apply task-fn % args)
-				      project
-				      (partial print-set-message task)))
-	valued? (every? number? results)
-	success? (every? #(and (number? %) (zero? %)) results)]
+        results (cons (apply task-fn project args)
+                      (run-multi-task #(apply task-fn % args)
+                                      project
+                                      (partial print-set-message task)))
+        valued? (every? number? results)
+        success? (every? #(and (number? %) (zero? %)) results)]
     (if valued?
       (if (every? zero? results) 0 1)
       results)))
+
+(defn- project-needed?
+  [task]
+  (some #(= 'project (first %)) (arglists task)))
 
 (defn multi
   "Run a task against multiple dependency sets as specified by :multi-deps in
   project.clj."
   [project task & args]
   (cond
-   (@no-project-needed task) (do
-                               (println (str "lein multi has no effect for task \""
-                                             task "\" - running task as normal"))
-                               (apply (resolve-task task) args))
+   (not (project-needed? task)) (do
+                                  (println (str "lein multi has no effect for task \""
+                                                task "\" - running task as normal"))
+                                  (apply (resolve-task task) args))
    (= task "deps") (apply run-deps project args)
    :else (apply run-task task project args)))
