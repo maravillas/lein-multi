@@ -1,4 +1,4 @@
-(defproject lein-multi "0.1.0-SNAPSHOT"
+(defproject lein-multi "1.0.0"
   :description "A Leiningen plugin for running tasks against multiple dependency sets."
   :url "http://github.com/maravillas/lein-multi"
   :license {:name "MIT License"
