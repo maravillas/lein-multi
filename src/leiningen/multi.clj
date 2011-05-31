@@ -37,9 +37,13 @@
            (:multi-deps project))))
   ([task-fn project delimiter-fn depkey] ;; force task for dep set via depkey
       {:pre [(not-empty depkey)]}
-      (let [depvec ((:multi-deps project) depkey)]
-        (delimiter-fn depkey depvec)
-        (task-fn (project-for-set project depkey depvec)))))
+      (if-let [deps (:multi-deps project)]
+        (if-let [depvec (deps depkey)]
+          (do
+            (delimiter-fn depkey depvec)
+            (task-fn (project-for-set project depkey depvec)))
+          (println "No version:" depkey "found in multi-deps"))
+        (println "No multi-deps specified in project.clj"))))
 
 (defn- print-base-message
   [task project]
