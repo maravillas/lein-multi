@@ -67,3 +67,8 @@
   (is (.exists (file "multi-test-new-project")))
   (delete-file-recursively (file "multi-test-new-project") true))
 
+#_(deftest test-with-dep
+   (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0")
+	     result (multi test-project "classpath" :with "1.2.0")]
+     (is (= result []))))
+
