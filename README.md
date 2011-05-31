@@ -25,7 +25,7 @@ Additionally, other tasks may require special handling that isn't yet implemente
 
 Add the following to your project.clj :dev-dependencies:
 
-`[lein-multi "1.0.0"]`
+`[lein-multi "1.1.0-SNAPSHOT"]`
 
 Download the plugin with `lein deps`.
 
