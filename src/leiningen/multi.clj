@@ -17,6 +17,15 @@
   (merge project {:library-path (str (multi-library-path project) "/" name)
 		  :dependencies deps}))
 
+(defn- with-dep? [args]
+  (> (.indexOf (or args []) ":with") -1))
+
+(defn- get-with [args]
+  {:pre [(not-empty args)]}
+  (let [with-idx (.indexOf args ":with")]
+    (when (> with-idx -1)
+      (let [ars (vec args)] (->> with-idx inc (get ars))))))
+
 (defn- run-multi-task
   ([task-fn project]
      (run-multi-task task-fn project nil))
@@ -25,7 +34,12 @@
       (map (fn [[k v]]
              (when delimiter-fn (delimiter-fn k v))
              (task-fn (project-for-set project k v)))
-           (:multi-deps project)))))
+           (:multi-deps project))))
+  ([task-fn project delimiter-fn depkey] ;; force task for dep set via depkey
+      {:pre [(not-empty depkey)]}
+      (let [depvec ((:multi-deps project) depkey)]
+        (delimiter-fn depkey depvec)
+        (task-fn (project-for-set project depkey depvec)))))
 
 (defn- print-base-message
   [task project]
@@ -60,6 +74,19 @@
       (if (every? zero? results) 0 1)
       results)))
 
+(defn- run-task-with
+  [task project depkey & args]
+  (let [task-fn (resolve-task task)
+        results (run-multi-task #(apply task-fn % args)
+                                project
+                                (partial print-set-message task)
+                                depkey)
+        valued? (every? number? results)
+        success? (every? #(and (number? %) (zero? %)) results)]
+    (if valued?
+      (if (every? zero? results) 0 1)
+      results)))
+
 (defn- project-needed?
   [task]
   (some #(= 'project (first %)) (arglists task)))
@@ -74,4 +101,6 @@
                                                 task "\" - running task as normal"))
                                   (apply (resolve-task task) args))
    (= task "deps") (apply run-deps project args)
+   (with-dep? args) (apply run-task-with task project (get-with args) (subvec (vec args) 0 (- (count args) 2))) ; TODO there has to be a better way to do this
    :else (apply run-task task project args)))
+
