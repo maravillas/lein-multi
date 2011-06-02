@@ -23,7 +23,7 @@
   (delete-file-recursively (file (:root test-project) "lib") true)
   (delete-file-recursively (file (:root test-project) "multi-lib-test") true)
   (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0")
-	lib-path (str (:root test-project) "/multi-lib-test")]
+        lib-path (str (:root test-project) "/multi-lib-test")]
     (multi test-project "deps")
     (is (= #{"clojure-1.2.0-RC1.jar"} (list-files (str (:root test-project) "/lib"))))
     (is (= #{"clojure-1.1.0.jar"} (list-files (str lib-path "/1.1.0"))))
@@ -67,8 +67,15 @@
   (is (.exists (file "multi-test-new-project")))
   (delete-file-recursively (file "multi-test-new-project") true))
 
-#_(deftest test-with-dep
-   (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0")
-	     result (multi test-project "classpath" :with "1.2.0")]
-     (is (= result []))))
+(deftest test-with-dep
+  (delete-file-recursively (file (:root test-project) "multi-lib-test") true)
+  (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0")
+        lib-path (str (:root test-project) "/multi-lib-test")
+        result (multi test-project "deps" "--with" "1.2.0")]
+    (is (= #{"clojure-1.2.0.jar"} (list-files (str lib-path "/1.2.0"))))
+    (is (not= #{"clojure-1.1.0.jar"} (list-files (str lib-path "/1.1.0"))))))
 
+(deftest test-missing-with-set
+  (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0")
+        result (multi test-project "classpath" "--with" "1.3.0")]
+    (is (= result 1))))

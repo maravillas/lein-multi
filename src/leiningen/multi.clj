@@ -1,6 +1,8 @@
 (ns leiningen.multi
   (:use [leiningen.deps :only [deps]]
-	[leiningen.core :only [resolve-task arglists]])
+        [leiningen.core :only [resolve-task arglists]]
+        [clojure.string :only [replace-first]]
+        [clojure.contrib.logging :only [spy]])
   (:require [leiningen.test]))
 
 (defn- multi-library-path
@@ -14,97 +16,95 @@
 
 (defn- project-for-set
   [project name deps]
-  (merge project {:library-path (str (multi-library-path project) "/" name)
-		  :dependencies deps}))
-
-(defn- with-dep? [args]
-  (> (.indexOf (or args []) ":with") -1))
-
-(defn- get-with [args]
-  {:pre [(not-empty args)]}
-  (let [with-idx (.indexOf args ":with")]
-    (when (> with-idx -1)
-      (let [ars (vec args)] (->> with-idx inc (get ars))))))
-
-(defn- run-multi-task
-  ([task-fn project]
-     (run-multi-task task-fn project nil))
-  ([task-fn project delimiter-fn]
-     (doall
-      (map (fn [[k v]]
-             (when delimiter-fn (delimiter-fn k v))
-             (task-fn (project-for-set project k v)))
-           (:multi-deps project))))
-  ([task-fn project delimiter-fn depkey] ;; force task for dep set via depkey
-      {:pre [(not-empty depkey)]}
-      (if-let [deps (:multi-deps project)]
-        (if-let [depvec (deps depkey)]
-          (do
-            (delimiter-fn depkey depvec)
-            (task-fn (project-for-set project depkey depvec)))
-          (println "No version:" depkey "found in multi-deps"))
-        (println "No multi-deps specified in project.clj"))))
-
-(defn- print-base-message
-  [task project]
-  (println (str "Running \"lein " task "\" on base dependencies: "
-                (:dependencies project))))
+  (if (= name "base")
+    project
+    (merge project {:library-path (str (multi-library-path project) "/" name)
+                    :dependencies deps})))
 
 (defn- print-set-message
   [task name deps]
   (println (str "\nRunning \"lein " task "\" on dependencies set " name ": " deps)))
 
-;; Handle the deps task individually, as we want to pass the "skip-dev" param
-;; to the base call, but pass true for the multi calls.
-(defn- run-deps
-  [project & args]
-  (print-base-message "deps" project)
-  (apply deps project args)
-  (run-multi-task #(deps % true)
-		  project
-		  (partial print-set-message "deps")))
+(defn- run-task-on-set
+  [task task-fn args [name project]]
+  (print-set-message task name (:dependencies project))
+  (apply task-fn project args))
+
+(defn- create-projects
+  [project dep-sets]
+  (into {} (map (fn [[name deps]] {name (project-for-set project name deps)})
+                dep-sets)))
+
+(defn- combine-results
+  [results]
+  (if (every? number? results)
+    (if (every? zero? results) 0 1)
+    results))
 
 (defn- run-task
-  [task project & args]
-  (print-base-message task project)
-  (let [task-fn (resolve-task task)
-        results (cons (apply task-fn project args)
-                      (run-multi-task #(apply task-fn % args)
-                                      project
-                                      (partial print-set-message task)))
-        valued? (every? number? results)
-        success? (every? #(and (number? %) (zero? %)) results)]
-    (if valued?
-      (if (every? zero? results) 0 1)
-      results)))
+  [task project dep-sets args]
+  (let [projects (create-projects project dep-sets)
+        task-fn (resolve-task task)
+        results (doall (map #(run-task-on-set task task-fn args %) projects))]
+    (combine-results results)))
 
-(defn- run-task-with
-  [task project depkey & args]
-  (let [task-fn (resolve-task task)
-        results (run-multi-task #(apply task-fn % args)
-                                project
-                                (partial print-set-message task)
-                                depkey)
-        valued? (every? number? results)
-        success? (every? #(and (number? %) (zero? %)) results)]
-    (if valued?
-      (if (every? zero? results) 0 1)
-      results)))
+;; Handle the deps task individually, as we want to pass the "skip-dev" param
+;; to the base call, but pass true for the multi calls.
+(defn- run-deps-task
+  [project dep-sets & args]
+  (let [projects (create-projects project dep-sets)
+        task-fn (resolve-task "deps")
+        arg-fn (fn [args [name _]] (if (= name "base") args [true]))
+        results (doall (map #(run-task-on-set "deps" task-fn (arg-fn args %) %) projects))]
+    (combine-results results)))
 
 (defn- project-needed?
   [task]
   (some #(= 'project (first %)) (arglists task)))
 
+(defn- option-map
+  [args]
+  (->> args
+       (partition 2)
+       (take-while #(.startsWith (first %) "--"))
+       (map (fn [[flag value]] [(keyword (replace-first flag "--" "")) value]))
+       (into {})))
+
+(defn- without-options
+  [args]
+  (->> args
+       (partition-all 2)
+       (drop-while #(.startsWith (first %) "--"))
+       (flatten)))
+
+(defn- collect-sets
+  [project options]
+  (if (contains? options :with)
+    (when-let [set ((:multi-deps project) (:with options))]
+      {(:with options) set})
+    (apply array-map
+           "base" (:dependencies project)
+           (mapcat identity (:multi-deps project)))))
+
 (defn multi
   "Run a task against multiple dependency sets as specified by :multi-deps in
-  project.clj."
+project.clj."
   [project task & args]
-  (cond
-   (not (project-needed? task)) (do
-                                  (println (str "lein multi has no effect for task \""
-                                                task "\" - running task as normal"))
-                                  (apply (resolve-task task) args))
-   (= task "deps") (apply run-deps project args)
-   (with-dep? args) (apply run-task-with task project (get-with args) (subvec (vec args) 0 (- (count args) 2))) ; TODO there has to be a better way to do this
-   :else (apply run-task task project args)))
+  (when (not (:multi-deps project))
+    (println "Warning: No :multi-deps found in project.clj."))
+  (let [options (option-map args)
+        args (without-options args)
+        dep-set (collect-sets project options)
+        set-missing? (and (contains? options :with)
+                          (nil? dep-set))]
+    (cond
+     set-missing? (do
+                    (println (str "Error: No dependency set named \"" (:with options) "\" found in project.clj."))
+                    1)
+     (not (project-needed? task)) (do
+                                    (println (str "lein multi has no effect for task \""
+                                                  task "\" - running task as normal"))
+                                    (apply (resolve-task task) args))
+     (= task "deps") (apply run-deps-task project dep-set args)
+     :else (run-task task project dep-set args))))
 
