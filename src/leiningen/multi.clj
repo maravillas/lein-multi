@@ -1,8 +1,7 @@
 (ns leiningen.multi
   (:use [leiningen.deps :only [deps]]
         [leiningen.core :only [resolve-task arglists]]
-        [clojure.string :only [replace-first]]
-        [clojure.contrib.logging :only [spy]])
+        [clojure.string :only [replace-first]])
   (:require [leiningen.test]))
 
 (defn- multi-library-path
