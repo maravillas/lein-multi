@@ -6,7 +6,7 @@ lein-multi is a Leiningen plugin for running tasks against multiple dependency s
 
 Syntax:
 
-`$ lein multi <task> [args]`
+`$ lein multi <task> [--with <set name>] [args]`
 
 Specify dependency sets in your project.clj:
 
@@ -16,6 +16,8 @@ Specify dependency sets in your project.clj:
                         [ring/ring-core "0.3.0-beta1"]]}
 
 Download these dependencies with `lein multi deps` (or by running your tests with `lein multi test`). They will be placed in the folder specified by `:multi-library-path` (default: `multi-lib`).
+
+Run a task against a single dependency set from :multi-deps using the `--with` option followed by the set name as specified in your project.clj.
 
 lein-multi will accept and run other tasks, though the result may not be what you expect. Tasks that do not require a project (currently `new`, `help`, and `version`) are run as normal. 
 
