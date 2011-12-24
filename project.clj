@@ -9,5 +9,5 @@
                      ;; oudated, though, so I'll just let you pull it in yourself.
                      ;; Sorry.
 
-                     ;;[leiningen "1.5.0"]
+                     [leiningen "1.6.2"]
                      ])

@@ -13,9 +13,12 @@ Specify dependency sets in your project.clj:
     :multi-deps {"1.1" [[org.clojure/clojure "1.1.0"]
               	        [ring/ring-core "0.2.2"]]
                  "1.2" [[org.clojure/clojure "1.2.0"]
-                        [ring/ring-core "0.3.0-beta1"]]}
+                        [ring/ring-core "0.3.0-beta1"]]
+                 :all  [[compojure "0.6.4"]]}
 
 Download these dependencies with `lein multi deps` (or by running your tests with `lein multi test`). They will be placed in the folder specified by `:multi-library-path` (default: `multi-lib`).
+
+Dependencies included in the :all set will be included with all other sets, including the base set specified in the :dependencies keyword in root of your project.clj.
 
 Run a task against a single dependency set from :multi-deps using the `--with` option followed by the set name as specified in your project.clj.
 

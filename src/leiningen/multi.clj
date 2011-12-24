@@ -15,14 +15,14 @@
 
 (defn- project-for-set
   [project name deps]
-  (if (= name "base")
-    project
-    (merge project {:library-path (str (multi-library-path project) "/" name)
-                    :dependencies deps})))
+  (merge project
+         {:dependencies deps}
+         (when (not= name "base")
+           {:library-path (str (multi-library-path project) "/" name)})))
 
 (defn- print-set-message
   [task name deps]
-  (println (str "\nRunning \"lein " task "\" on dependencies set " name ": " deps)))
+  (println (str "\nRunning \"lein " task "\" on dependencies set " name ": " (seq deps))))
 
 (defn- run-task-on-set
   [task task-fn args [name project]]
@@ -76,14 +76,20 @@
        (drop-while #(.startsWith (first %) "--"))
        (flatten)))
 
+(defn- add-common
+  [project set]
+  (concat set (:all (:multi-deps project))))
+
 (defn- collect-sets
   [project options]
   (if (contains? options :with)
     (when-let [set ((:multi-deps project) (:with options))]
-      {(:with options) set})
-    (apply array-map
-           "base" (:dependencies project)
-           (mapcat identity (:multi-deps project)))))
+      {(:with options) (add-common project set)})
+    (let [sets (dissoc (:multi-deps project) :all)
+          sets (merge sets {"base" (:dependencies project)})]
+      (apply array-map
+             (mapcat #(vector (first %) (add-common project (second %)))
+                     sets)))))
 
 (defn multi
   "Run a task against multiple dependency sets as specified by :multi-deps in

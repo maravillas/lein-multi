@@ -11,10 +11,15 @@
 
 (defn add-clojure-deps
   [project & versions]
-  (merge project {:multi-deps
-                  (apply hash-map
-                         (mapcat (fn [v] [v [['org.clojure/clojure v]]])
-                                 versions))}))
+  (merge-with merge project {:multi-deps
+                             (apply hash-map
+                                    (mapcat (fn [v] [v [['org.clojure/clojure v]]])
+                                            versions))}))
+
+(defn add-common
+  [project & common]
+  (merge-with merge project {:multi-deps
+                             {:all common}}))
 
 (defn list-files
   [path]
@@ -88,3 +93,46 @@
   (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0")
         result (multi test-project "classpath" "--with" "1.3.0")]
     (is (= result 1))))
+
+(deftest test-common-deps-set
+  (delete-dirs (file (:root test-project) "lib")
+               (file (:root test-project) "multi-lib-test"))
+  (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0")
+        test-project (add-common test-project ['org.clojure/core.logic "0.6.7"])
+        lib-path (str (:root test-project) "/multi-lib-test")]
+    (multi test-project "deps")
+    (is (some #{"core.logic-0.6.7.jar"} (list-files (str (:root test-project) "/lib"))))
+    (is (some #{"core.logic-0.6.7.jar"} (list-files (str lib-path "/1.1.0"))))
+    (is (some #{"core.logic-0.6.7.jar"} (list-files (str lib-path "/1.2.0"))))))
+
+(deftest test-common-deps-set-and-with
+  (delete-dirs (file (:root test-project) "lib")
+               (file (:root test-project) "multi-lib-test"))
+  (let [test-project (add-clojure-deps test-project "1.1.0" "1.2.0")
+        test-project (add-common test-project ['org.clojure/core.logic "0.6.7"])
+        lib-path (str (:root test-project) "/multi-lib-test")]
+    (multi test-project "deps" "--with" "1.2.0")
+    (is (not-any? #{"core.logic-0.6.7.jar"} (list-files (str (:root test-project) "/lib"))))
+    (is (not-any? #{"core.logic-0.6.7.jar"} (list-files (str lib-path "/1.1.0"))))
+    (is (some #{"core.logic-0.6.7.jar"} (list-files (str lib-path "/1.2.0"))))))
+
+(deftest test-common-deps-set-and-exclusions
+  (delete-dirs (file (:root test-project) "lib")
+               (file (:root test-project) "multi-lib-test"))
+  (let [test-project (merge test-project
+                            {:dependencies [['org.clojure/clojure "1.3.0"]]
+                             :multi-deps {:all [['koan-engine "0.1.1"
+                                                 :exclusions ['fresh]]]
+                                          "1.2.0" [['org.clojure/clojure "1.2.0"]]
+                                          "1.2.1" [['org.clojure/clojure "1.2.1"]]}})
+        lib-path (str (:root test-project) "/multi-lib-test")]
+    (multi test-project "deps")
+    (let [files-base (list-files (str (:root test-project) "/lib"))
+          files-120 (list-files (str lib-path "/1.2.0"))
+          files-121 (list-files (str lib-path "/1.2.1"))]
+      (is (some #{"koan-engine-0.1.1.jar"} files-base))
+      (is (some #{"koan-engine-0.1.1.jar"} files-120))
+      (is (some #{"koan-engine-0.1.1.jar"} files-121))
+      (is (not-any? #(re-matches #"fresh.*" %) files-base))
+      (is (not-any? #(re-matches #"fresh.*" %) files-120))
+      (is (not-any? #(re-matches #"fresh.*" %) files-121)))))
