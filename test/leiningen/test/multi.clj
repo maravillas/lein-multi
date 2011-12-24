@@ -57,7 +57,7 @@
 (deftest test-multi-tests-with-namespaces
   (delete-dirs (file (:root test-project) "multi-lib-test"))
   (println "*** Begin embedded tests - ignore results below ***")
-  (let [test-project (add-clojure-deps test-project "1.1.0")
+  (let [test-project (add-clojure-deps test-project "1.2.0")
         result (multi test-project "test" "sample2")]
     (println "*** End embedded tests - ignore results above ***")
     ;; If the sample2 namespace argument is ignored, sample/failing-test-1.1.0
