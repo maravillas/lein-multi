@@ -2,6 +2,8 @@
 
 lein-multi is a Leiningen plugin for running tasks against multiple dependency sets. Most notably, it allows you to test your project against multiple versions of Clojure.
 
+**NOTE:** This plugin has been superseded by [Leiningen 2.x's profiles](https://github.com/technomancy/leiningen/blob/master/doc/PROFILES.md).
+
 ## Usage
 
 Syntax:
